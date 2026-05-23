@@ -1,4 +1,3 @@
-==============================================================
 
 CREATE TABLE usuarios (
     id                  UUID PRIMARY KEY,
