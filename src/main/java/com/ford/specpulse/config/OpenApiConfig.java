@@ -8,9 +8,11 @@ import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -19,8 +21,17 @@ public class OpenApiConfig {
 
     private static final String NOME_ESQUEMA_SEGURANCA = "bearerAuth";
 
+    @Value("${specpulse.openapi.servidor-producao:}")
+    private String servidorProducao;
+
     @Bean
     public OpenAPI specPulseOpenAPI() {
+        List<Server> servidores = new ArrayList<>();
+        if (servidorProducao != null && !servidorProducao.isBlank()) {
+            servidores.add(new Server().url(servidorProducao).description("Produção (Railway)"));
+        }
+        servidores.add(new Server().url("http://localhost:8080").description("Local dev"));
+
         return new OpenAPI()
                 .info(new Info()
                         .title("Ford SpecPulse Twin API")
@@ -37,9 +48,7 @@ public class OpenApiConfig {
                                 .name("FIAP AOS — Sprint 1")
                                 .email("carloshadp@gmail.com"))
                         .license(new License().name("Uso academico")))
-                .servers(List.of(
-                        new Server().url("http://localhost:8080").description("Local dev")
-                ))
+                .servers(servidores)
                 .addSecurityItem(new SecurityRequirement().addList(NOME_ESQUEMA_SEGURANCA))
                 .components(new Components()
                         .addSecuritySchemes(NOME_ESQUEMA_SEGURANCA,
