@@ -44,19 +44,21 @@ public class AutenticacaoControlador {
 
     @Operation(summary = "Registra um novo usuario.",
             description = "Endpoint publico. Cria um usuario com perfil SOMENTE_LEITURA por padrao. "
-                    + "Se um perfil diferente for solicitado, retorna 422 quando o requisitante nao "
-                    + "for ADMINISTRADOR autenticado.")
+                    + "Perfis elevados exigem ADMINISTRADOR autenticado, exceto quando nenhum admin "
+                    + "ainda existe no sistema — nesse caso o primeiro admin pode ser criado livremente.")
     @PostMapping("/register")
     public ResponseEntity<TokenResposta> registrar(@Valid @RequestBody RegistroRequisicao req,
                                                      Authentication autenticacao,
                                                      HttpServletRequest httpReq) {
         Perfil perfilSolicitado = req.perfil();
         if (perfilSolicitado != null && perfilSolicitado != Perfil.SOMENTE_LEITURA) {
+            boolean primeiroAdmin = perfilSolicitado == Perfil.ADMINISTRADOR
+                    && !autenticacaoServico.existeAdmin();
             boolean requisitanteEhAdmin = autenticacao != null
                     && autenticacao.isAuthenticated()
                     && autenticacao.getAuthorities().stream().anyMatch(
                             a -> a.getAuthority().equals("ROLE_" + Perfil.ADMINISTRADOR.name()));
-            if (!requisitanteEhAdmin) {
+            if (!primeiroAdmin && !requisitanteEhAdmin) {
                 throw new RegraNegocioException(
                         "Somente ADMINISTRADOR pode registrar usuarios com perfil diferente de SOMENTE_LEITURA.");
             }
