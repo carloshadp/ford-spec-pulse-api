@@ -73,11 +73,6 @@ public class UsuarioServico implements UserDetailsService {
         return repositorio.save(u);
     }
 
-    @Transactional(readOnly = true)
-    public boolean existeAdmin() {
-        return repositorio.existsByPerfil(Perfil.ADMINISTRADOR);
-    }
-
     public boolean senhaCorresponde(String senhaTextoPuro, Usuario usuario) {
         return codificador.matches(senhaTextoPuro, usuario.getSenhaHash());
     }

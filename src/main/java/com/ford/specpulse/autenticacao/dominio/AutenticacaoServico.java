@@ -82,10 +82,6 @@ public class AutenticacaoServico {
     }
 
 
-    public boolean existeAdmin() {
-        return usuarioServico.existeAdmin();
-    }
-
     @Transactional
     public void revogarSessoesDoUsuario(UUID usuarioId) {
         refreshRepositorio.revogarTodosDoUsuario(usuarioId, OffsetDateTime.now(), "LOGOUT");
