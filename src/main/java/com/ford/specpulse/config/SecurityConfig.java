@@ -155,8 +155,7 @@ public class SecurityConfig {
 
         http
                 .cors(cors -> cors.configurationSource(configuracaoCors()))
-                .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/soap/**", "/api/auth/**"))
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers
                         .frameOptions(frame -> frame.deny())
@@ -174,9 +173,6 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-
-                        // Endpoint SOAP
-                        .requestMatchers("/soap/**").permitAll()
 
                         // Endpoints públicos de autenticação
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
