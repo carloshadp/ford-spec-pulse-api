@@ -158,10 +158,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers
-                        .frameOptions(frame -> frame.deny())
+                        .frameOptions(frame -> frame.sameOrigin())
                         .xssProtection(xss -> xss.disable())
                         .contentSecurityPolicy(csp ->
-                                csp.policyDirectives("default-src 'self'; frame-ancestors 'none'"))
+                                csp.policyDirectives(
+                                        "default-src 'self'; "
+                                        + "script-src 'self' 'unsafe-inline'; "
+                                        + "style-src 'self' 'unsafe-inline'; "
+                                        + "img-src 'self' data:; "
+                                        + "font-src 'self' data:; "
+                                        + "frame-ancestors 'self'"))
                         .httpStrictTransportSecurity(hsts -> hsts
                                 .includeSubDomains(true)
                                 .maxAgeInSeconds(31536000)))

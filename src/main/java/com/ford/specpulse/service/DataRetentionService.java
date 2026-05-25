@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * Politica de retencao e descarte seguro de dados.
@@ -45,9 +45,9 @@ public class DataRetentionService {
 
         int removidos = jdbc.update("""
             DELETE FROM refresh_tokens
-            WHERE revogado = 1
+            WHERE revogado_em IS NOT NULL
                OR expira_em < ?
-            """, LocalDateTime.now().minusDays(DIAS_RETENCAO_TOKENS));
+            """, OffsetDateTime.now().minusDays(DIAS_RETENCAO_TOKENS));
 
         log.info("[RETENCAO] Refresh tokens removidos: {}", removidos);
     }
@@ -62,17 +62,18 @@ public class DataRetentionService {
     public void anonimizarAuditoriaAntiga() {
         log.info("[RETENCAO] Iniciando anonimizacao de registros de auditoria antigos");
 
-        LocalDateTime limite = LocalDateTime.now().minusDays(DIAS_RETENCAO_AUDIT);
+        OffsetDateTime limite = OffsetDateTime.now().minusDays(DIAS_RETENCAO_AUDIT);
 
         int anonimizados = jdbc.update("""
             UPDATE auditoria
-            SET ip         = 'ANONIMIZADO',
-                usuario_id = NULL,
-                recurso    = CASE
-                    WHEN recurso LIKE '%email%' THEN 'ANONIMIZADO'
-                    ELSE recurso
-                END
-            WHERE criado_em < ?
+            SET ip          = 'ANONIMIZADO',
+                usuario_id  = NULL,
+                entidade_id = CASE
+                    WHEN entidade_id LIKE '%@%' THEN 'ANONIMIZADO'
+                    ELSE entidade_id
+                END,
+                dados_json  = NULL
+            WHERE ocorrido_em < ?
               AND ip != 'ANONIMIZADO'
             """, limite);
 
@@ -88,11 +89,11 @@ public class DataRetentionService {
     public void removerAuditoriaAntiga() {
         log.info("[RETENCAO] Removendo registros de auditoria com mais de 1 ano");
 
-        LocalDateTime limite = LocalDateTime.now().minusDays(365);
+        OffsetDateTime limite = OffsetDateTime.now().minusDays(365);
 
         int removidos = jdbc.update("""
             DELETE FROM auditoria
-            WHERE criado_em < ?
+            WHERE ocorrido_em < ?
               AND ip = 'ANONIMIZADO'
             """, limite);
 

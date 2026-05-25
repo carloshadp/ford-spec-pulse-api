@@ -64,7 +64,7 @@ public class AutenticacaoControlador {
 
         ResultadoAutenticacao resultado = autenticacaoServico.registrar(
                 req.nome(), req.email(), req.senha(), perfilSolicitado);
-        auditoriaServico.registrarRegistro(req.email(), httpReq.getRemoteAddr());
+        auditoriaServico.registrarRegistro(req.email(), obterIpCliente(httpReq));
         return ResponseEntity.status(HttpStatus.CREATED).body(TokenResposta.de(resultado));
     }
 
@@ -75,7 +75,7 @@ public class AutenticacaoControlador {
     @PostMapping("/login")
     public TokenResposta autenticar(@Valid @RequestBody LoginRequisicao req,
                                     HttpServletRequest httpReq) {
-        String ip = httpReq.getRemoteAddr();
+        String ip = obterIpCliente(httpReq);
         ResultadoAutenticacao resultado;
         try {
             resultado = autenticacaoServico.autenticar(req.email(), req.senha(), ip);
@@ -106,5 +106,13 @@ public class AutenticacaoControlador {
         UUID usuarioId = UUID.fromString(jwt.getSubject());
         autenticacaoServico.revogarSessoesDoUsuario(usuarioId);
         return ResponseEntity.noContent().build();
+    }
+
+    private static String obterIpCliente(HttpServletRequest req) {
+        String forwarded = req.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return req.getRemoteAddr();
     }
 }
