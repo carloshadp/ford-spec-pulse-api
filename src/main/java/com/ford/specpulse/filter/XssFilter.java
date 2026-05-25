@@ -42,17 +42,35 @@ public class XssFilter implements Filter {
         chain.doFilter(new XssRequestWrapper((HttpServletRequest) request), response);
     }
 
+    /**
+     * Sanitizacao completa: remove padroes XSS e aplica encoding HTML.
+     * Usar em parametros de query/formulario (nao JSON).
+     */
     public static String sanitize(String value) {
         if (value == null) return null;
-        String result = value;
-        for (Pattern pattern : XSS_PATTERNS) {
-            result = pattern.matcher(result).replaceAll("");
-        }
+        String result = stripXssPatterns(value);
         result = result
                 .replace("&", "&amp;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#x27;");
         return result.trim();
+    }
+
+    /**
+     * Sanitizacao de corpo JSON: remove padroes XSS sem aplicar encoding HTML.
+     * O encoding de aspas quebraria a estrutura do JSON.
+     */
+    public static String sanitizeBody(String value) {
+        if (value == null) return null;
+        return stripXssPatterns(value);
+    }
+
+    private static String stripXssPatterns(String value) {
+        String result = value;
+        for (Pattern pattern : XSS_PATTERNS) {
+            result = pattern.matcher(result).replaceAll("");
+        }
+        return result;
     }
 
     static class XssRequestWrapper extends HttpServletRequestWrapper {
@@ -62,7 +80,8 @@ public class XssFilter implements Filter {
         XssRequestWrapper(HttpServletRequest request) throws IOException {
             super(request);
             String body = new String(request.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            this.sanitizedBody = sanitize(body).getBytes(StandardCharsets.UTF_8);
+            // Corpo JSON: apenas remove padroes perigosos, sem HTML-encode (preserva aspas do JSON)
+            this.sanitizedBody = sanitizeBody(body).getBytes(StandardCharsets.UTF_8);
         }
 
         @Override

@@ -102,6 +102,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- ===== ACTUATOR ===== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- ===== TESTES ===== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
