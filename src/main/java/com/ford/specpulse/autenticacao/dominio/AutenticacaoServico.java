@@ -2,6 +2,7 @@ package com.ford.specpulse.autenticacao.dominio;
 
 import com.ford.specpulse.autenticacao.persistencia.RefreshTokenRepositorio;
 import com.ford.specpulse.compartilhado.RegraNegocioException;
+import com.ford.specpulse.security.BruteForceProtectionService;
 import com.ford.specpulse.seguranca.Perfil;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
@@ -17,13 +18,16 @@ public class AutenticacaoServico {
     private final UsuarioServico usuarioServico;
     private final TokenServico tokenServico;
     private final RefreshTokenRepositorio refreshRepositorio;
+    private final BruteForceProtectionService bruteForceService;
 
     public AutenticacaoServico(UsuarioServico usuarioServico,
                                 TokenServico tokenServico,
-                                RefreshTokenRepositorio refreshRepositorio) {
+                                RefreshTokenRepositorio refreshRepositorio,
+                                BruteForceProtectionService bruteForceService) {
         this.usuarioServico = usuarioServico;
         this.tokenServico = tokenServico;
         this.refreshRepositorio = refreshRepositorio;
+        this.bruteForceService = bruteForceService;
     }
 
 
@@ -35,21 +39,30 @@ public class AutenticacaoServico {
 
 
     @Transactional
-    public ResultadoAutenticacao autenticar(String email, String senha) {
+    public ResultadoAutenticacao autenticar(String email, String senha, String ip) {
+        if (bruteForceService.estaBloqueado(ip)) {
+            throw new RegraNegocioException("Acesso temporariamente bloqueado. Tente novamente mais tarde.");
+        }
+
         Usuario usuario;
         try {
             usuario = usuarioServico.buscarPorEmail(email);
         } catch (Exception ex) {
+            bruteForceService.registrarFalha(ip, email);
             throw new RegraNegocioException("Credenciais invalidas.");
         }
 
         if (!usuario.isAtivo()) {
-            throw new RegraNegocioException("Usuario desativado.");
-        }
-        if (!usuarioServico.senhaCorresponde(senha, usuario)) {
+            bruteForceService.registrarFalha(ip, email);
             throw new RegraNegocioException("Credenciais invalidas.");
         }
 
+        if (!usuarioServico.senhaCorresponde(senha, usuario)) {
+            bruteForceService.registrarFalha(ip, email);
+            throw new RegraNegocioException("Credenciais invalidas.");
+        }
+
+        bruteForceService.registrarSucesso(ip);
         return emitirPar(usuario);
     }
 

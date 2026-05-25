@@ -75,12 +75,13 @@ public class AutenticacaoControlador {
     @PostMapping("/login")
     public TokenResposta autenticar(@Valid @RequestBody LoginRequisicao req,
                                     HttpServletRequest httpReq) {
+        String ip = httpReq.getRemoteAddr();
         ResultadoAutenticacao resultado;
         try {
-            resultado = autenticacaoServico.autenticar(req.email(), req.senha());
-            auditoriaServico.registrarLogin(req.email(), httpReq.getRemoteAddr(), true);
+            resultado = autenticacaoServico.autenticar(req.email(), req.senha(), ip);
+            auditoriaServico.registrarLogin(req.email(), ip, true);
         } catch (Exception ex) {
-            auditoriaServico.registrarLogin(req.email(), httpReq.getRemoteAddr(), false);
+            auditoriaServico.registrarLogin(req.email(), ip, false);
             throw ex;
         }
         return TokenResposta.de(resultado);
