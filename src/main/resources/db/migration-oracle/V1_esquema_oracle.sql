@@ -1,6 +1,6 @@
 -- =============================================
 -- V1: Schema completo — Oracle-compatible
--- Ford SpecPulse API — CP3 SOA FIAP 2026
+-- Ford SpecPulse API — SPRINT 1/2 SOA FIAP 2026
 -- =============================================
 
 CREATE TABLE marcas (
