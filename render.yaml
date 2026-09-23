@@ -1,0 +1,37 @@
+# =============================================================
+#  Render Blueprint - Ford SpecPulse API
+#  Cria o Web Service a partir deste repositorio.
+#  Render -> New + -> Blueprint -> aponta para este repo.
+# =============================================================
+services:
+  - type: web
+    name: ford-spec-pulse-api
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    dockerfilePath: ./Dockerfile
+    autoDeployTrigger: commit
+
+    # O Render considera o servico saudavel quando isto responde 200.
+    healthCheckPath: /actuator/health
+
+    envVars:
+      # Ativa application-prod.properties (desliga o console H2, etc.)
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+
+      # Segredo do JWT (HS256). PropriedadesJwt exige >= 32 caracteres.
+      # sync: false = o Render pede o valor na criacao e NAO guarda no git.
+      - key: SPECPULSE_JWT_SEGREDO
+        sync: false
+
+      # Origens liberadas no CORS (lista separada por virgula).
+      # Sobrescreve specpulse.cors.origens por inteiro - se preencher, inclua
+      # tambem os localhost, senao o front local para de conseguir chamar.
+      - key: SPECPULSE_CORS_ORIGENS
+        sync: false
+
+      # Heap limitado: o plano free tem 512 MB e a JVM seria morta por OOM.
+      - key: JAVA_OPTS
+        value: -XX:MaxRAMPercentage=70 -XX:+UseSerialGC
