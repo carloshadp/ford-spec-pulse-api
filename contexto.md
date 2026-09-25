@@ -48,7 +48,9 @@ A nota da challenge é a média das entregas e vale para **todas** as disciplina
 
 Java 21 · Spring Boot 3.3.5 · Spring Security + OAuth2 Resource Server (JWT HS256 via Nimbus) · Spring Data JPA · Flyway · H2 em arquivo (`./data/specpulse`) · springdoc-openapi 2.6 · Lombok · Actuator.
 
-Não há Maven Wrapper (`mvnw`) no repositório: é preciso JDK 21 e Maven 3.9+ instalados para rodar (`mvn spring-boot:run`).
+Não há Maven Wrapper (`mvnw`) no repositório: é preciso JDK 21 e Maven 3.9+ instalados para rodar (`mvn spring-boot:run`) e testar (`mvn test`).
+
+Testes: JUnit 5 + Spring Boot Test (MockMvc) + JaCoCo. Detalhes na seção 3.6 e no README.
 
 ### 3.2 Organização
 
@@ -107,9 +109,16 @@ Usuários de teste (um por perfil) estão no README: `leitor@`, `analista@`, `ge
 - O H2 grava dentro do container: **os dados voltam ao seed a cada deploy**.
 - URL pública: *a registrar aqui*.
 
-### 3.6 O que ainda não existe
+### 3.6 Testes automatizados
 
-- **Nenhum teste automatizado** (não há `src/test`). É a maior lacuna para a Sprint 3.
+- **63 testes, 0 falhas**, cobertura de 70% das instruções (medição de 25/09/2026).
+- `src/test/java/com/ford/specpulse/`: `AutenticacaoTest`, `TokenJwtTest`, `AutorizacaoPerfisTest`, `CatalogoTest`, `ComparacaoTest`, `FichaTecnicaTest` (integração, MockMvc) e `RateLimitFilterTest`, `BruteForceProtectionServiceTest` (unitários).
+- Os testes de integração herdam de `suporte/TesteIntegracaoBase`, que sobe a aplicação com o perfil `test` (`src/test/resources/application-test.properties`): H2 em memória e rate limit alto. Tokens dos usuários de seed são reaproveitados entre testes.
+- Relatórios: `target/surefire-reports/` (resultado por classe) e `target/site/jacoco/index.html` (cobertura).
+- Os testes documentam o comportamento **atual**. Onde o comportamento atual é um bug listado em 8.1 (ex.: senha errada → 422), o teste precisa ser ajustado junto com a correção.
+
+### 3.7 O que ainda não existe
+
 - Diagramas de arquitetura e do fluxo de autenticação.
 - Gaps, recomendações, valor percebido, histórico, radar, relatórios, data quality e uploads: só stubs que devolvem lista vazia, ou nada (ver seção 5).
 - Pipeline de CI.
@@ -124,8 +133,8 @@ Usuários de teste (um por perfil) estão no README: `leitor@`, `analista@`, `ge
 | Maturidade REST nível 2 | 20% | Recursos, métodos HTTP corretos, status codes coerentes | ⚠️ Recursos e verbos ok; `201` em criação, `204` no logout, `422` em regra de negócio | Padronizar prefixo (`/api` × `/api/v1`); `201` sai sem header `Location`; erro 500 sai com código `SERVICE_UNAVAILABLE` |
 | Autenticação e autorização | 20% | Endpoints públicos e protegidos; perfis diferentes | ✅ Feito | Só evidenciar nos testes |
 | JWT | 15% | Geração, validação, expiração, uso das claims | ✅ Feito (inclui refresh) | Só evidenciar nos testes |
-| Testes automatizados | 15% | Sucesso, erro e acesso não autorizado; evidência de execução | ❌ Não existe | Testes de integração com MockMvc + relatório e prints |
-| Documentação e erros | 10% | Swagger, erros padronizados, README | ✅ Swagger e `RespostaErro` ok | README desatualizado (cita migrations V1–V7; falta V8, deploy e testes) |
+| Testes automatizados | 15% | Sucesso, erro e acesso não autorizado; evidência de execução | ✅ 63 testes + relatório JaCoCo | Prints do `mvn test` e do relatório para a entrega |
+| Documentação e erros | 10% | Swagger, erros padronizados, README | ⚠️ Swagger e `RespostaErro` ok; README com seção de testes | Erros do framework saem como 500 (ver 8.1); README sem deploy e URL pública |
 
 **Outras disciplinas que tocam este repositório**
 
@@ -213,13 +222,16 @@ Status: **Implementado** (já está no código) · **Proposto** (falta a equipe 
 | D2 | Monólito modular com pacotes por área e camadas `api → dominio → persistencia` | Implementado | Cumpre o papel do serviço "Core" da arquitetura; ingestão e IA ficam como serviços externos |
 | D3 | Login próprio com JWT HS256 (access 15 min + refresh 7 dias rotacionado), em vez do SSO do pitch | Implementado | Rubrica exige geração e validação de JWT; SSO fica como evolução |
 | D4 | IDs UUID no banco, mas rotas aceitam UUID ou slug | Implementado | Frontend usa slugs estáveis |
-| D5 | Rotas em português (`/api/marcas`, `/api/veiculos`...), com nomes de campo JSON em inglês | Implementado — **rever** | Diverge do contrato. Confirmar com o frontend qual caminho ele chama (ver 8.1) |
+| D5 | Rotas em português (`/api/marcas`, `/api/veiculos`...), com nomes de campo JSON em inglês | Implementado — **rever** | Diverge do contrato. Confirmar com o frontend qual caminho ele chama (ver 8.2) |
 | D6 | Regra de negócio violada → `422 BUSINESS_RULE_VIOLATION` | Implementado | Não existe no contrato, mas é coerente com REST |
 | D7 | Comparação é um snapshot imutável dos valores | Implementado | Mudança posterior em spec não altera comparação já criada |
 | D8 | Confiança guardada como nível (ALTA/MEDIA/BAIXA) e convertida em número fixo (0.9 / 0.65 / 0.35) | Implementado — **rever** | O contrato prevê o contrário: número de 0 a 1, com o nível derivado dele. Com MEDIA = 0.65, nenhum dado médio cai na regra de cautela `< 0.65` |
 | D9 | SOAP (Apache CXF) e perfil Oracle removidos | Implementado | Commit `3267c54`; simplificação |
 | D10 | Deploy Docker no Render com perfil `prod` | Implementado | Substitui o deploy no Railway de mai/2026 |
-| D11 | Testes de integração com `@SpringBootTest` + MockMvc cobrindo sucesso, 400, 401, 403 e 404 | Proposto | Rubrica de testes (15%) |
+| D11 | Testes de integração com `@SpringBootTest` + MockMvc cobrindo sucesso, 400, 401, 403 e 404 | Implementado | Rubrica de testes (15%) |
+| D15 | Limites do rate limit lidos de `specpulse.rate-limit.geral` e `.auth` (padrões 60 e 10, iguais aos antigos valores fixos) | Implementado | As propriedades já existiam mas eram ignoradas; o perfil `test` precisa de limite alto |
+| D16 | Perfil `test` com H2 em memória; rate limit e força bruta testados como unidade, isolados | Implementado | Suíte independente de `./data` e sem 429 falsos, já que todos os testes vêm do mesmo IP |
+| D17 | JaCoCo gera relatório de cobertura a cada `mvn test` | Implementado | Evidência de execução pedida pela rubrica |
 | D12 | Comparação entre segmentos diferentes gera aviso em `validationWarnings`, não 409 | Proposto | O contrato aceita os dois caminhos |
 | D13 | Gaps e recomendações por regras determinísticas no MVP | Proposto | O próprio contrato pede priorizar contrato a algoritmo |
 | D14 | Campos `stale` e `sourceRevision` para comparações afetadas por correção de dados | Proposto | O contrato pede marcar desatualizado, mas não tem campo |
@@ -260,20 +272,59 @@ sequenceDiagram
 
 ## 8. Pendências e dúvidas
 
-### 8.1 Precisa decidir com a equipe
+### 8.1 Bugs encontrados (verificados com a API rodando em 25/09/2026)
+
+Nenhum destes foi corrigido ainda.
+
+**Status code errado ou erro 500** — pesa em "Maturidade REST" (20%) e "Tratamento de erros" (10%):
+
+| # | Caso | Hoje | Esperado | Causa |
+|---|---|---|---|---|
+| B1 | Rota inexistente (`GET /api/nao-existe`) | 500 | 404 | `@ExceptionHandler(Exception.class)` do `ManipuladorGlobalExcecoes` captura também as exceções do Spring MVC |
+| B2 | Método não suportado (`DELETE /api/marcas`) | 500 | 405 | idem |
+| B3 | Parâmetro com tipo inválido (`?page=abc`) | 500 | 400 | idem |
+| B4 | JSON malformado ou corpo ausente | 500 | 400 | idem |
+| B5 | ID de comparação que não é UUID (`/api/comparacoes/abc`) | 500 | 400 ou 404 | `UUID.fromString` sem tratamento no `ComparisonFacadeController` |
+| B6 | Logout de `read_only` ou `data_validator` | 403 | 204 | `POST /api/auth/logout` cai na regra "demais mutações" do `SecurityConfig` |
+| B7 | Senha errada / refresh inválido | 422 | 401 | `RegraNegocioException` usada para falha de autenticação |
+| B8 | IP bloqueado por força bruta | 422 | 429 | idem |
+| B9 | Refresh token usado como Bearer | 403 | 401 | o resource server não confere a claim `type` |
+| B10 | `requestId` nas respostas 401 e 403 | `"n/a"` | `req_...` | `RequestIdFilter` roda depois do Spring Security (ver 7.1) |
+| B11 | Respostas 201 | sem `Location` | com `Location` | não implementado |
+| B12 | Erro inesperado | código `SERVICE_UNAVAILABLE` com HTTP 500 | `SERVICE_UNAVAILABLE` é 503 no contrato | código errado no handler genérico |
+
+B7 e B8 estão documentados nos testes com o comportamento atual (422). Ao corrigir, ajustar `AutenticacaoTest`.
+
+**Segurança** — vale também para a entrega de Cybersecurity:
+
+| # | Problema |
+|---|---|
+| S1 | Rate limit e proteção contra força bruta usam o primeiro IP do header `X-Forwarded-For`, que o cliente controla. Trocando o header a cada requisição, os dois são contornados. |
+| S2 | `pageSize` não tem limite máximo (`?pageSize=100000` é aceito). |
+| S3 | `/api/auth/register` é público em produção: qualquer pessoa cria conta `read_only`. Aceitável para a demo, mas é um risco a registrar. |
+
+**Contrato e dados:**
+
+| # | Problema |
+|---|---|
+| C1 | A busca da taxonomia (`q`) não procura nos sinônimos (`q=cavalos` volta vazio). O contrato exige busca por sinônimo. A ficha técnica resolve sinônimos corretamente. |
+| C2 | Datas saem com fuso `-03:00` em vez de UTC (`Z`), como o contrato pede. |
+| C3 | Slug da versão Raptor tem "raptor" duplicado: `version-ford-ranger-raptor-raptor-...`. |
+| C4 | O health check responde `UP` antes de terminar o seed de usuários: logins logo após o deploy podem falhar. |
+
+### 8.2 Precisa decidir com a equipe
 
 - **Rotas em português × contrato em inglês:** o app chama `/api/vehicles` ou `/api/veiculos`? Se chama em inglês, o app quebra em quase todas as telas. Opções: aliases em inglês (como já existe para `/api/users`) ou atualizar o contrato.
 - **Prefixo `/api/v1`:** `EspecificacaoControlador` e `FonteControlador` usam `/api/v1`; o resto usa `/api`. Unificar.
 - **Confiança numérica** (D8).
-- **`requestId` nos erros 401 e 403:** hoje sai `"n/a"`, porque o `RequestIdFilter` roda depois do Spring Security (ver 7.1). Correção simples: dar ao filtro uma ordem anterior à do Security.
-- **`/api/auth/register` público em produção:** qualquer pessoa cria conta `read_only`. Aceitável para a demo, mas vale registrar como risco (ou fechar em `prod`).
+- **B7 a B9 mudam respostas que o app pode tratar:** confirmar com o frontend antes de trocar 422 por 401 ou 429.
 
-### 8.2 Schemas que o contrato usa sem definir
+### 8.3 Schemas que o contrato usa sem definir
 
 `ComparisonCell`, `CompetitiveGap` + `GapType`, `CustomerProfile`, `PerceivedValueScore`, `Recommendation` + `RecommendationStatus`, `AnalysisHistoryItem`, `ReportExportResult`, `MarketAlert` + `AlertSeverity`, `DataQualityItem`, enums `SourceType` e `reliability`, enum `versionLevel`.
 Os tipos TypeScript do app provavelmente já têm o formato certo.
 
-### 8.3 Prometido no pitch, fora do contrato
+### 8.4 Prometido no pitch, fora do contrato
 
 - Radar de **preços** rivais (analista de pricing): não há categoria de preço nem alerta de mudança de preço.
 - Alertas por Teams e email.
@@ -285,13 +336,14 @@ Os tipos TypeScript do app provavelmente já têm o formato certo.
 A rubrica avalia qualidade de REST, segurança, testes e documentação, não quantidade de endpoints. Autenticação e JWT já estão prontos; o foco é fechar o que vale nota.
 
 **Essencial**
-- [ ] Testes automatizados: login ok/erro, 401 sem token, 403 por perfil, 404, 400 de validação, criação de comparação (201)
-- [ ] Evidência dos testes (relatório do Maven + prints) no README
+- [x] Testes automatizados: login ok/erro, 401 sem token, 403 por perfil, 404, 400 de validação, criação de comparação (201) — 63 testes
+- [x] Resumo dos testes no README + relatório JaCoCo
+- [ ] Prints do `mvn test` e do relatório de cobertura para a entrega
+- [ ] Corrigir os 500 indevidos e o logout: B1 a B6 e B12 (seção 8.1)
+- [ ] `RequestIdFilter` antes do Spring Security (B10) e header `Location` nos 201 (B11)
 - [ ] Diagramas de componentes e de autenticação (seção 7) no README ou em `docs/`
 - [ ] Unificar prefixo `/api` × `/api/v1`
-- [ ] `RequestIdFilter` antes do Spring Security, para 401 e 403 terem `requestId`
-- [ ] Header `Location` nas respostas 201
-- [ ] Atualizar README (V8, deploy no Render, como rodar os testes, URL pública)
+- [ ] README: deploy no Render e URL pública (V8 e testes já foram)
 
 **Se der tempo**
 - [ ] Gaps reais a partir da comparação (regras 3 e 4 da seção 5.3)
@@ -323,7 +375,8 @@ Pontos do pitch que afetam a API: mitigação de alucinação por "evidência ra
 | 2026-05-24 | Ian | Sprint de Cybersecurity (PR #1): filtros XSS/HMAC/rate limit, proteção contra força bruta, retenção de dados, headers de segurança, validação de DTOs, mascaramento de logs. SOAP e Oracle entraram e depois foram removidos | `06d6d21` … `3267c54` |
 | 2026-05-24 | Carlos | Ajustes de CORS, porta, Swagger e conexão H2; merge do PR #1 | `36bbbaf`, `6c0837e` |
 | 2026-09-22 | Carlos | Deploy em container no Render (`Dockerfile`, `render.yaml`, perfil `prod`) | `8ffc6c6`, `4bee448` |
-| 2026-09-25 | Ian | Análise do contrato do frontend, do pitch e da rubrica da Sprint 3 contra o código. Criação deste arquivo | `contexto.md` |
+| 2026-09-25 | Ian | Análise do contrato do frontend, do pitch e da rubrica da Sprint 3 contra o código. Criação deste arquivo | `contexto.md` (branch `ian-sprint3`) |
+| 2026-09-25 | Ian | Suíte de testes automatizados (63 testes, 70% de cobertura) com perfil `test` e JaCoCo. `RateLimitFilter` passa a ler os limites de `specpulse.rate-limit.*`. README com seção de testes e V8. Bugs encontrados registrados em 8.1 | `src/test/**`, `RateLimitFilter.java`, `pom.xml`, `README.md`, `contexto.md` |
 
 ---
 

@@ -12,7 +12,7 @@ API REST para **inteligência competitiva automotiva**: recebe uma entrada simpl
 | Spring Boot | 3.3.5 |
 | Spring Security | OAuth2 Resource Server (JWT HS256) |
 | Spring Data JPA | Hibernate 6 |
-| Flyway | migrations V1–V7 |
+| Flyway | migrations V1–V8 |
 | H2 | arquivo `./data/specpulse` |
 | springdoc-openapi | Swagger UI |
 
@@ -35,6 +35,29 @@ A aplicação sobe em `http://localhost:8080`. As migrations Flyway aplicam sche
 | H2 Console | http://localhost:8080/h2-console |
 
 Console H2 → JDBC URL: `jdbc:h2:file:./data/specpulse;DB_CLOSE_DELAY=-1;MODE=LEGACY` · usuário `sa` sem senha.
+
+---
+
+## Testes automatizados
+
+```powershell
+mvn test
+```
+
+A suíte sobe a aplicação inteira (Spring Security, JPA, Flyway) com o perfil `test`, que usa um banco H2 em memória e não toca `./data`. Ao final, o JaCoCo gera o relatório de cobertura em `target/site/jacoco/index.html`, e o resultado de cada classe fica em `target/surefire-reports/`.
+
+| Classe | O que cobre |
+|---|---|
+| `AutenticacaoTest` | Login válido, senha errada, email inválido (400), refresh com rotação, logout (204 e 401), registro público e tentativa de escalar perfil |
+| `TokenJwtTest` | Claims do access e do refresh token, expiração de 15 min e 7 dias, token válido, ausente, malformado, expirado e assinado com outro segredo (401) |
+| `AutorizacaoPerfisTest` | Matriz de permissões dos 5 perfis (200/201 × 403), corpo padronizado do 403, rotas públicas (OpenAPI e health) |
+| `CatalogoTest` | Envelope paginado, busca por slug, filtros, 404 padronizado, especificações com status, confiança e evidências, busca na taxonomia |
+| `ComparacaoTest` | Criação (201), consulta, matriz filtrada, validações (400) e recursos inexistentes (404) |
+| `FichaTecnicaTest` | Sinônimos resolvendo para o mesmo atributo, termo desconhecido, versão inexistente e validação |
+| `RateLimitFilterTest` | 429 ao passar do limite, limites separados para `/api/auth/*` e demais rotas, contagem por IP |
+| `BruteForceProtectionServiceTest` | Bloqueio do IP na 5ª falha de login, isolamento por IP, reset após login bem-sucedido |
+
+Resultado em 25/09/2026: **63 testes, 0 falhas**, cobertura de 70% das instruções.
 
 ---
 
@@ -225,6 +248,7 @@ Os endpoints aceitam **UUID ou slug** — tentam parse UUID primeiro, depois sca
 | V5 | Tabela `auditoria` |
 | V6 | +16 atributos ampliados para todas as versões de entrada (23 specs cada) |
 | V7 | Reclassificação de atributos para categorias mais precisas (ex: painel digital) |
+| V8 | Mitsubishi L200 Triton Sport HPE, Nissan Frontier Pro-4X e Fiat Toro Ultra |
 
 ---
 
@@ -274,7 +298,7 @@ usuarios ──> refresh_tokens
 
 - **JWT HS256** — access token (15 min) + refresh token rotacionado (7 dias, revogável)
 - **RBAC** — 5 perfis: `SOMENTE_LEITURA < ANALISTA < GERENTE < VALIDADOR_DADOS < ADMINISTRADOR`
-- **Rate limiting** — 60 req/min geral, 10 req/min em `/api/auth/*`
+- **Rate limiting** — 60 req/min geral, 10 req/min em `/api/auth/*` (configurável em `specpulse.rate-limit.geral` e `specpulse.rate-limit.auth`)
 - **CORS** — origens configuráveis via `specpulse.cors.origens`
 - **Auditoria assíncrona** — login, registro, comparações, alterações de usuário e acessos negados (403) gravados na tabela `auditoria`
 - **Erros sem stack trace** — respostas de erro nunca expõem detalhes internos
