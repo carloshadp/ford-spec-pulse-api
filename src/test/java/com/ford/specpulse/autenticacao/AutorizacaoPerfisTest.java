@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -71,7 +72,8 @@ class AutorizacaoPerfisTest extends TesteIntegracaoBase {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403))
                 .andExpect(jsonPath("$.code").value("FORBIDDEN"))
-                .andExpect(jsonPath("$.path").value("/api/usuarios"));
+                .andExpect(jsonPath("$.path").value("/api/usuarios"))
+                .andExpect(jsonPath("$.requestId", startsWith("req_")));
     }
 
     @Test

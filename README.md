@@ -54,10 +54,11 @@ A suíte sobe a aplicação inteira (Spring Security, JPA, Flyway) com o perfil 
 | `CatalogoTest` | Envelope paginado, busca por slug, filtros, 404 padronizado, especificações com status, confiança e evidências, busca na taxonomia |
 | `ComparacaoTest` | Criação (201), consulta, matriz filtrada, validações (400) e recursos inexistentes (404) |
 | `FichaTecnicaTest` | Sinônimos resolvendo para o mesmo atributo, termo desconhecido, versão inexistente e validação |
+| `ErrosHttpTest` | Status e corpo padronizados para rota inexistente (404), método não suportado (405 + `Allow`), parâmetro inválido e JSON malformado (400), Content-Type errado (415), `requestId` igual no header e no corpo |
 | `RateLimitFilterTest` | 429 ao passar do limite, limites separados para `/api/auth/*` e demais rotas, contagem por IP |
 | `BruteForceProtectionServiceTest` | Bloqueio do IP na 5ª falha de login, isolamento por IP, reset após login bem-sucedido |
 
-Resultado em 25/09/2026: **63 testes, 0 falhas**, cobertura de 70% das instruções.
+Resultado em 25/09/2026: **77 testes, 0 falhas**, cobertura de 70% das instruções.
 
 ---
 
@@ -328,7 +329,7 @@ SPECPULSE_JWT_SEGREDO=<segredo-com-no-minimo-32-caracteres>
 {
   "timestamp": "2025-01-01T12:00:00Z",
   "status": 422,
-  "code": "REGRA_NEGOCIO",
+  "code": "BUSINESS_RULE_VIOLATION",
   "message": "Descrição do problema.",
   "path": "/api/comparacoes",
   "requestId": "abc-123",

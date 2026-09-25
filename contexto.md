@@ -111,8 +111,8 @@ Usuários de teste (um por perfil) estão no README: `leitor@`, `analista@`, `ge
 
 ### 3.6 Testes automatizados
 
-- **63 testes, 0 falhas**, cobertura de 70% das instruções (medição de 25/09/2026).
-- `src/test/java/com/ford/specpulse/`: `AutenticacaoTest`, `TokenJwtTest`, `AutorizacaoPerfisTest`, `CatalogoTest`, `ComparacaoTest`, `FichaTecnicaTest` (integração, MockMvc) e `RateLimitFilterTest`, `BruteForceProtectionServiceTest` (unitários).
+- **77 testes, 0 falhas**, cobertura de 70% das instruções (medição de 25/09/2026).
+- `src/test/java/com/ford/specpulse/`: `AutenticacaoTest`, `TokenJwtTest`, `AutorizacaoPerfisTest`, `CatalogoTest`, `ComparacaoTest`, `FichaTecnicaTest`, `ErrosHttpTest` (integração, MockMvc) e `RateLimitFilterTest`, `BruteForceProtectionServiceTest` (unitários).
 - Os testes de integração herdam de `suporte/TesteIntegracaoBase`, que sobe a aplicação com o perfil `test` (`src/test/resources/application-test.properties`): H2 em memória e rate limit alto. Tokens dos usuários de seed são reaproveitados entre testes.
 - Relatórios: `target/surefire-reports/` (resultado por classe) e `target/site/jacoco/index.html` (cobertura).
 - Os testes documentam o comportamento **atual**. Onde o comportamento atual é um bug listado em 8.1 (ex.: senha errada → 422), o teste precisa ser ajustado junto com a correção.
@@ -130,11 +130,11 @@ Usuários de teste (um por perfil) estão no README: `leitor@`, `analista@`, `ge
 | Critério | Peso | O que a FIAP pede | Situação hoje | O que falta |
 |---|---:|---|---|---|
 | Arquitetura da solução | 20% | Diagrama de componentes e responsabilidades; separação de responsabilidades; fluxo de comunicação e autenticação | ⚠️ README tem estrutura de pacotes e modelo de dados em texto | Diagrama de componentes e diagrama de sequência do login/JWT |
-| Maturidade REST nível 2 | 20% | Recursos, métodos HTTP corretos, status codes coerentes | ⚠️ Recursos e verbos ok; `201` em criação, `204` no logout, `422` em regra de negócio | Padronizar prefixo (`/api` × `/api/v1`); `201` sai sem header `Location`; erro 500 sai com código `SERVICE_UNAVAILABLE` |
+| Maturidade REST nível 2 | 20% | Recursos, métodos HTTP corretos, status codes coerentes | ⚠️ Recursos e verbos ok; `201` + `Location`, `204` no logout, 400/404/405/415 corretos, `422` em regra de negócio | Padronizar prefixo (`/api` × `/api/v1`); B7–B9 (falha de login em 422) |
 | Autenticação e autorização | 20% | Endpoints públicos e protegidos; perfis diferentes | ✅ Feito | Só evidenciar nos testes |
 | JWT | 15% | Geração, validação, expiração, uso das claims | ✅ Feito (inclui refresh) | Só evidenciar nos testes |
-| Testes automatizados | 15% | Sucesso, erro e acesso não autorizado; evidência de execução | ✅ 63 testes + relatório JaCoCo | Prints do `mvn test` e do relatório para a entrega |
-| Documentação e erros | 10% | Swagger, erros padronizados, README | ⚠️ Swagger e `RespostaErro` ok; README com seção de testes | Erros do framework saem como 500 (ver 8.1); README sem deploy e URL pública |
+| Testes automatizados | 15% | Sucesso, erro e acesso não autorizado; evidência de execução | ✅ 77 testes + relatório JaCoCo | Prints do `mvn test` e do relatório para a entrega |
+| Documentação e erros | 10% | Swagger, erros padronizados, README | ✅ Swagger, `RespostaErro` em todos os erros (inclusive os do Spring), README com seção de testes | README sem deploy e URL pública |
 
 **Outras disciplinas que tocam este repositório**
 
@@ -232,6 +232,8 @@ Status: **Implementado** (já está no código) · **Proposto** (falta a equipe 
 | D15 | Limites do rate limit lidos de `specpulse.rate-limit.geral` e `.auth` (padrões 60 e 10, iguais aos antigos valores fixos) | Implementado | As propriedades já existiam mas eram ignoradas; o perfil `test` precisa de limite alto |
 | D16 | Perfil `test` com H2 em memória; rate limit e força bruta testados como unidade, isolados | Implementado | Suíte independente de `./data` e sem 429 falsos, já que todos os testes vêm do mesmo IP |
 | D17 | JaCoCo gera relatório de cobertura a cada `mvn test` | Implementado | Evidência de execução pedida pela rubrica |
+| D18 | ID de comparação em formato inválido responde 404, não 400 | Implementado | No contrato, IDs são strings opacas: um ID que não é UUID simplesmente não identifica nenhuma comparação |
+| D19 | Exceções do Spring MVC mantêm o status e os headers originais (404, 405 + `Allow`, 415) e só ganham o corpo padrão `RespostaErro`; erro inesperado vira `500 INTERNAL_ERROR` | Implementado | Corrige B1–B4 e B12 sem precisar listar exceção por exceção |
 | D12 | Comparação entre segmentos diferentes gera aviso em `validationWarnings`, não 409 | Proposto | O contrato aceita os dois caminhos |
 | D13 | Gaps e recomendações por regras determinísticas no MVP | Proposto | O próprio contrato pede priorizar contrato a algoritmo |
 | D14 | Campos `stale` e `sourceRevision` para comparações afetadas por correção de dados | Proposto | O contrato pede marcar desatualizado, mas não tem campo |
@@ -249,9 +251,9 @@ flowchart LR
     ingest["Serviço de ingestão / RAG<br/>(fora deste repo)"] -.->|"fontes e specs extraídas"| api
 ```
 
-Ordem atual dos filtros, pelo `@Order` de cada um: `XssFilter` → `HmacSignatureFilter` → Spring Security (JWT e perfil) → `RateLimitFilter` → `RequestIdFilter` → controller → serviço → repositório.
+Ordem atual dos filtros, pelo `@Order` de cada um: `RequestIdFilter` → `XssFilter` → `HmacSignatureFilter` → Spring Security (JWT e perfil) → `RateLimitFilter` → controller → serviço → repositório.
 
-Consequências: as respostas 401 e 403 saem com `requestId: "n/a"`, porque o ID ainda não foi gerado. Requisições sem token recebem 401 antes de passar pelo rate limit.
+O `RequestIdFilter` passou para o início da cadeia em 25/09 (B10), para 401 e 403 também terem `requestId`. Requisições sem token ainda recebem 401 antes de passar pelo rate limit.
 
 ### 7.2 Fluxo de autenticação
 
@@ -274,25 +276,24 @@ sequenceDiagram
 
 ### 8.1 Bugs encontrados (verificados com a API rodando em 25/09/2026)
 
-Nenhum destes foi corrigido ainda.
-
 **Status code errado ou erro 500** — pesa em "Maturidade REST" (20%) e "Tratamento de erros" (10%):
 
-| # | Caso | Hoje | Esperado | Causa |
-|---|---|---|---|---|
-| B1 | Rota inexistente (`GET /api/nao-existe`) | 500 | 404 | `@ExceptionHandler(Exception.class)` do `ManipuladorGlobalExcecoes` captura também as exceções do Spring MVC |
-| B2 | Método não suportado (`DELETE /api/marcas`) | 500 | 405 | idem |
-| B3 | Parâmetro com tipo inválido (`?page=abc`) | 500 | 400 | idem |
-| B4 | JSON malformado ou corpo ausente | 500 | 400 | idem |
-| B5 | ID de comparação que não é UUID (`/api/comparacoes/abc`) | 500 | 400 ou 404 | `UUID.fromString` sem tratamento no `ComparisonFacadeController` |
-| B6 | Logout de `read_only` ou `data_validator` | 403 | 204 | `POST /api/auth/logout` cai na regra "demais mutações" do `SecurityConfig` |
-| B7 | Senha errada / refresh inválido | 422 | 401 | `RegraNegocioException` usada para falha de autenticação |
-| B8 | IP bloqueado por força bruta | 422 | 429 | idem |
-| B9 | Refresh token usado como Bearer | 403 | 401 | o resource server não confere a claim `type` |
-| B10 | `requestId` nas respostas 401 e 403 | `"n/a"` | `req_...` | `RequestIdFilter` roda depois do Spring Security (ver 7.1) |
-| B11 | Respostas 201 | sem `Location` | com `Location` | não implementado |
-| B12 | Erro inesperado | código `SERVICE_UNAVAILABLE` com HTTP 500 | `SERVICE_UNAVAILABLE` é 503 no contrato | código errado no handler genérico |
+| # | Caso | Antes | Esperado | Causa | Situação |
+|---|---|---|---|---|---|
+| B1 | Rota inexistente (`GET /api/nao-existe`) | 500 | 404 | `@ExceptionHandler(Exception.class)` do `ManipuladorGlobalExcecoes` capturava também as exceções do Spring MVC | ✅ Corrigido |
+| B2 | Método não suportado (`DELETE /api/marcas`) | 500 | 405 + `Allow` | idem | ✅ Corrigido |
+| B3 | Parâmetro ou path com tipo inválido (`?page=abc`, UUID inválido) | 500 | 400 | idem | ✅ Corrigido |
+| B4 | JSON malformado, corpo ausente, Content-Type errado | 500 | 400 / 415 | idem | ✅ Corrigido |
+| B5 | ID de comparação que não é UUID (`/api/comparacoes/abc`) | 500 | 404 | `UUID.fromString` sem tratamento no `ComparisonFacadeController` | ✅ Corrigido (D18) |
+| B6 | Logout de `read_only` ou `data_validator` | 403 | 204 | `POST /api/auth/logout` caía na regra "demais mutações" do `SecurityConfig` | ✅ Corrigido |
+| B7 | Senha errada / refresh inválido | 422 | 401 | `RegraNegocioException` usada para falha de autenticação | ⏳ Aguarda confirmação do frontend |
+| B8 | IP bloqueado por força bruta | 422 | 429 | idem | ⏳ Aguarda confirmação do frontend |
+| B9 | Refresh token usado como Bearer | 403 | 401 | o resource server não confere a claim `type` | ⏳ Pendente |
+| B10 | `requestId` nas respostas 401 e 403 | `"n/a"` | `req_...` | `RequestIdFilter` rodava depois do Spring Security | ✅ Corrigido |
+| B11 | Resposta 201 de `POST /api/comparacoes` | sem `Location` | com `Location` | não implementado | ✅ Corrigido (o 201 do `register` segue sem `Location`: não existe `GET /api/usuarios/{id}`) |
+| B12 | Erro inesperado | código `SERVICE_UNAVAILABLE` com HTTP 500 | `SERVICE_UNAVAILABLE` é 503 no contrato | código errado no handler genérico | ✅ Corrigido: agora `INTERNAL_ERROR` |
 
+Cada correção tem teste (principalmente `ErrosHttpTest`). Rodando esses testes contra o código anterior às correções, 14 falham; com as correções, todos passam.
 B7 e B8 estão documentados nos testes com o comportamento atual (422). Ao corrigir, ajustar `AutenticacaoTest`.
 
 **Segurança** — vale também para a entrega de Cybersecurity:
@@ -336,11 +337,12 @@ Os tipos TypeScript do app provavelmente já têm o formato certo.
 A rubrica avalia qualidade de REST, segurança, testes e documentação, não quantidade de endpoints. Autenticação e JWT já estão prontos; o foco é fechar o que vale nota.
 
 **Essencial**
-- [x] Testes automatizados: login ok/erro, 401 sem token, 403 por perfil, 404, 400 de validação, criação de comparação (201) — 63 testes
+- [x] Testes automatizados: login ok/erro, 401 sem token, 403 por perfil, 404, 400 de validação, criação de comparação (201) — 77 testes
 - [x] Resumo dos testes no README + relatório JaCoCo
 - [ ] Prints do `mvn test` e do relatório de cobertura para a entrega
-- [ ] Corrigir os 500 indevidos e o logout: B1 a B6 e B12 (seção 8.1)
-- [ ] `RequestIdFilter` antes do Spring Security (B10) e header `Location` nos 201 (B11)
+- [x] Corrigir os 500 indevidos e o logout: B1 a B6 e B12 (seção 8.1)
+- [x] `RequestIdFilter` antes do Spring Security (B10) e header `Location` no 201 da comparação (B11)
+- [ ] B7 a B9 (422 → 401/429), depois de confirmar com o frontend
 - [ ] Diagramas de componentes e de autenticação (seção 7) no README ou em `docs/`
 - [ ] Unificar prefixo `/api` × `/api/v1`
 - [ ] README: deploy no Render e URL pública (V8 e testes já foram)
@@ -377,6 +379,8 @@ Pontos do pitch que afetam a API: mitigação de alucinação por "evidência ra
 | 2026-09-22 | Carlos | Deploy em container no Render (`Dockerfile`, `render.yaml`, perfil `prod`) | `8ffc6c6`, `4bee448` |
 | 2026-09-25 | Ian | Análise do contrato do frontend, do pitch e da rubrica da Sprint 3 contra o código. Criação deste arquivo | `contexto.md` (branch `ian-sprint3`) |
 | 2026-09-25 | Ian | Suíte de testes automatizados (63 testes, 70% de cobertura) com perfil `test` e JaCoCo. `RateLimitFilter` passa a ler os limites de `specpulse.rate-limit.*`. README com seção de testes e V8. Bugs encontrados registrados em 8.1 | `src/test/**`, `RateLimitFilter.java`, `pom.xml`, `README.md`, `contexto.md` |
+| 2026-09-25 | Ian | PR #2 ("Inicio-sprint3") mergeado na `main`, com os dois commits acima | `e836d12` |
+| 2026-09-25 | Ian | Correções B1–B6 e B10–B12: status corretos para erros do Spring MVC (404/405/400/415), ID de comparação inválido → 404, logout para todos os perfis, `requestId` em 401/403, `Location` no 201 da comparação, `INTERNAL_ERROR` no 500. Novo `ErrosHttpTest` e casos a mais nos testes existentes (77 no total) | `ManipuladorGlobalExcecoes.java`, `ComparisonFacadeController.java`, `SecurityConfig.java`, `RequestIdFilter.java`, `src/test/**`, `README.md`, `contexto.md` |
 
 ---
 

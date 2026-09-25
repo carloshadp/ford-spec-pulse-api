@@ -5,11 +5,13 @@ import com.ford.specpulse.suporte.TesteIntegracaoBase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -24,9 +26,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ComparacaoTest extends TesteIntegracaoBase {
 
     @Test
-    @DisplayName("cria comparacao Ford vs 2 concorrentes e devolve 201 com versoes e linhas")
+    @DisplayName("cria comparacao Ford vs 2 concorrentes e devolve 201 com Location, versoes e linhas")
     void criarComparacao() throws Exception {
-        mvc.perform(post("/api/comparacoes")
+        MvcResult resultado = mvc.perform(post("/api/comparacoes")
                         .header("Authorization", bearer("analista"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(paraJson(Map.of(
@@ -39,7 +41,11 @@ class ComparacaoTest extends TesteIntegracaoBase {
                 .andExpect(jsonPath("$.request.referenceVersionId").value(VERSAO_RAPTOR))
                 .andExpect(jsonPath("$.comparedVersions", hasSize(3)))
                 .andExpect(jsonPath("$.rows", not(empty())))
-                .andExpect(jsonPath("$.summary").exists());
+                .andExpect(jsonPath("$.summary").exists())
+                .andReturn();
+
+        String id = json.readTree(resultado.getResponse().getContentAsString()).get("id").asText();
+        assertThat(resultado.getResponse().getHeader("Location")).endsWith("/api/comparacoes/" + id);
     }
 
     @Test

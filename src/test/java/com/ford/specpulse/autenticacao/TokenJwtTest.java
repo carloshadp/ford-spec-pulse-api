@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -77,7 +78,8 @@ class TokenJwtTest extends TesteIntegracaoBase {
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
                 .andExpect(jsonPath("$.message").exists())
-                .andExpect(jsonPath("$.path").value("/api/marcas"));
+                .andExpect(jsonPath("$.path").value("/api/marcas"))
+                .andExpect(jsonPath("$.requestId", startsWith("req_")));
     }
 
     @Test

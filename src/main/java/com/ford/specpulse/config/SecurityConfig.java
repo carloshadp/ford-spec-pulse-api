@@ -185,6 +185,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
 
+                        // Logout: todo perfil autenticado pode encerrar a propria sessao
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").hasAnyRole(
+                                Perfil.SOMENTE_LEITURA.name(), Perfil.ANALISTA.name(),
+                                Perfil.GERENTE.name(), Perfil.VALIDADOR_DADOS.name(), Perfil.ADMINISTRADOR.name())
+
                         // Ficha técnica: leitura para todos os perfis autenticados
                         .requestMatchers(HttpMethod.POST, "/api/fichas-tecnicas/consultar").hasAnyRole(
                                 Perfil.SOMENTE_LEITURA.name(), Perfil.ANALISTA.name(),

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.ford.specpulse.suporte.TesteIntegracaoBase;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 
 import java.util.Map;
@@ -93,6 +95,16 @@ class AutenticacaoTest extends TesteIntegracaoBase {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(paraJson(Map.of("refreshToken", sessao.get("refreshToken").asText()))))
                 .andExpect(status().isUnprocessableEntity());
+    }
+
+    @ParameterizedTest(name = "{0} faz logout")
+    @ValueSource(strings = {"leitor", "analista", "gerente", "validador", "admin"})
+    @DisplayName("todos os perfis conseguem fazer logout")
+    void logoutTodosOsPerfis(String usuario) throws Exception {
+        String accessToken = login(usuario + "@ford.internal", usuario + "123").get("accessToken").asText();
+
+        mvc.perform(post("/api/auth/logout").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
     }
 
     @Test

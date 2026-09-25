@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,7 +26,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -70,13 +71,15 @@ public class ComparisonFacadeController {
         Comparacao criada = comparacaoServico.criar(
                 titulo, descricao, versaoFord.getId(), concorrentesIds, perfil, criadoPor);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(ComparisonResultDto.de(criada));
+        URI local = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}").buildAndExpand(criada.getId()).toUri();
+        return ResponseEntity.created(local).body(ComparisonResultDto.de(criada));
     }
 
     @Operation(summary = "Get a comparison result by ID.")
     @GetMapping("/{id}")
     public ComparisonResultDto buscar(@PathVariable String id) {
-        return ComparisonResultDto.de(comparacaoServico.buscarPorId(UUID.fromString(id)));
+        return ComparisonResultDto.de(comparacaoServico.buscarPorId(idDaComparacao(id)));
     }
 
     @Operation(summary = "Obtém a matriz comparativa com filtros opcionais.")
@@ -91,7 +94,7 @@ public class ComparisonFacadeController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "25") int pageSize) {
 
-        Comparacao comp = comparacaoServico.buscarPorId(UUID.fromString(id));
+        Comparacao comp = comparacaoServico.buscarPorId(idDaComparacao(id));
         ComparisonResultDto dto = ComparisonResultDto.de(comp);
 
         List<ComparisonResultDto.MatrixRowDto> linhas = dto.rows().stream()
@@ -126,6 +129,15 @@ public class ComparisonFacadeController {
                             v.getNome()).equals(id))
                     .findFirst()
                     .orElseThrow(() -> new RecursoNaoEncontradoException("Versão não encontrada: " + id));
+        }
+    }
+
+    /** IDs de comparacao sao UUID; qualquer outro formato nao identifica uma comparacao existente. */
+    private static UUID idDaComparacao(String id) {
+        try {
+            return UUID.fromString(id);
+        } catch (IllegalArgumentException e) {
+            throw RecursoNaoEncontradoException.porId("Comparacao", id);
         }
     }
 
