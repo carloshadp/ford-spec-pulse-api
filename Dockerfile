@@ -16,7 +16,7 @@ COPY src ./src
 RUN mvn -B -ntp -DskipTests package
 
 # ---------- Estagio 2: runtime ----------
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:24-jre
 WORKDIR /app
 
 # Usuario sem privilegios (o H2 grava em /app/data, entao precisa ser dono da pasta)
