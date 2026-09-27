@@ -208,7 +208,11 @@ public class SecurityConfig {
                         // Documentação pública
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        // /actuator/prometheus so existe de fato quando o profile
+                        // "observabilidade" esta ativo (management.endpoints.web.exposure.include);
+                        // em prod e no dev padrao o endpoint nem e registrado, entao
+                        // liberar aqui nao expoe nada nesses profiles.
+                        .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus").permitAll()
 
                         // Endpoints públicos de autenticação
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
