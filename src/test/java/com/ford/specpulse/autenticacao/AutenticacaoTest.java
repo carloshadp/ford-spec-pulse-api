@@ -96,6 +96,16 @@ class AutenticacaoTest extends TesteIntegracaoBase {
     }
 
     @Test
+    @DisplayName("refresh token usado como Bearer em rota protegida e recusado com 401, nunca autentica")
+    void refreshTokenComoBearerERecusado() throws Exception {
+        JsonNode sessao = login("leitor@ford.internal", "leitor123");
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/marcas")
+                        .header("Authorization", "Bearer " + sessao.get("refreshToken").asText()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("logout sem token devolve 401")
     void logoutSemToken() throws Exception {
         mvc.perform(post("/api/auth/logout"))

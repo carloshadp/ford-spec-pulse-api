@@ -104,10 +104,40 @@ public class SecurityConfig {
     }
 
 
+    /**
+     * Decoder usado apenas pelo resource server (rotas protegidas por Bearer).
+     * Alem da assinatura e expiracao, exige a claim {@code type=access}: um
+     * refresh token roubado (vida de 7 dias) nao pode ser usado diretamente
+     * como Bearer para chamar a API. O {@link com.ford.specpulse.autenticacao.dominio.TokenServico}
+     * continua usando o bean {@code decodificadorJwt} (sem essa restricao),
+     * pois ele tambem precisa validar refresh tokens em POST /api/auth/refresh.
+     */
+    private JwtDecoder decodificadorSomenteAccessToken(PropriedadesJwt propriedades) {
+        SecretKeySpec chave = new SecretKeySpec(
+                propriedades.segredo().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(chave)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+
+        org.springframework.security.oauth2.core.OAuth2TokenValidator<Jwt> apenasAccessToken = jwt -> {
+            String tipo = jwt.getClaimAsString(com.ford.specpulse.autenticacao.dominio.TokenServico.CLAIM_TIPO);
+            if (com.ford.specpulse.autenticacao.dominio.TokenServico.TIPO_ACESSO.equals(tipo)) {
+                return org.springframework.security.oauth2.core.OAuth2TokenValidatorResult.success();
+            }
+            return org.springframework.security.oauth2.core.OAuth2TokenValidatorResult.failure(
+                    new org.springframework.security.oauth2.core.OAuth2Error("invalid_token",
+                            "Refresh token nao pode ser usado para autenticar chamadas a API.", null));
+        };
+        decoder.setJwtValidator(new org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator<>(
+                org.springframework.security.oauth2.jwt.JwtValidators.createDefault(), apenasAccessToken));
+        return decoder;
+    }
+
     @Bean
     public SecurityFilterChain cadeiaFiltrosSeguranca(HttpSecurity http,
                                                        JwtAuthenticationConverter conversor,
-                                                       AuditoriaServico auditoriaServico) throws Exception {
+                                                       AuditoriaServico auditoriaServico,
+                                                       PropriedadesJwt propriedadesJwt) throws Exception {
 
         AuthenticationEntryPoint entryPoint = (req, resp, ex) -> {
             if (resp.isCommitted()) return;
@@ -216,7 +246,8 @@ public class SecurityConfig {
 
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(conversor))
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(conversor)
+                                .decoder(decodificadorSomenteAccessToken(propriedadesJwt)))
                         .authenticationEntryPoint(entryPoint));
         return http.build();
     }

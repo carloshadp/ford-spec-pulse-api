@@ -47,9 +47,28 @@ class RateLimitFilterTest {
         assertThat(chamar("/api/auth/login", "10.0.0.4").getStatus()).isEqualTo(200);
     }
 
+    @Test
+    @DisplayName("cliente nao contorna o limite forjando X-Forwarded-For; so o IP do proxy conta")
+    void naoContornaLimiteForjandoHeader() throws Exception {
+        chamar("/api/auth/login", "10.0.0.5", "1.1.1.1");
+        chamar("/api/auth/login", "10.0.0.5", "2.2.2.2");
+        MockHttpServletResponse bloqueada = chamar("/api/auth/login", "10.0.0.5", "3.3.3.3");
+
+        assertThat(bloqueada.getStatus())
+                .as("mesmo trocando o X-Forwarded-For a cada chamada, o IP real (RemoteAddr) e o mesmo")
+                .isEqualTo(429);
+    }
+
     private MockHttpServletResponse chamar(String uri, String ip) throws Exception {
+        return chamar(uri, ip, null);
+    }
+
+    private MockHttpServletResponse chamar(String uri, String ip, String forwardedForForjado) throws Exception {
         MockHttpServletRequest req = new MockHttpServletRequest("POST", uri);
         req.setRemoteAddr(ip);
+        if (forwardedForForjado != null) {
+            req.addHeader("X-Forwarded-For", forwardedForForjado + ", " + ip);
+        }
         MockHttpServletResponse resp = new MockHttpServletResponse();
         filtro.doFilter(req, resp, new MockFilterChain());
         return resp;

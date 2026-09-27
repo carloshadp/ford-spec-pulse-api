@@ -109,10 +109,6 @@ public class AutenticacaoControlador {
     }
 
     private static String obterIpCliente(HttpServletRequest req) {
-        String forwarded = req.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return req.getRemoteAddr();
+        return com.ford.specpulse.compartilhado.ClientIpResolver.resolver(req);
     }
 }

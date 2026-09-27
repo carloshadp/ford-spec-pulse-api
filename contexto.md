@@ -3,7 +3,7 @@
 > Arquivo vivo. Guarda o contexto, o estado atual, as decisões e o histórico de tudo o que foi feito ou alterado neste repositório.
 > Quem chega agora no projeto deve ler este arquivo primeiro. Como manter: seção 12.
 
-**Última atualização:** 2026-09-25
+**Última atualização:** 2026-09-27
 **Repositório:** https://github.com/carloshadp/ford-spec-pulse-api
 
 ---
@@ -288,7 +288,7 @@ Nenhum destes foi corrigido ainda.
 | B6 | Logout de `read_only` ou `data_validator` | 403 | 204 | `POST /api/auth/logout` cai na regra "demais mutações" do `SecurityConfig` |
 | B7 | Senha errada / refresh inválido | 422 | 401 | `RegraNegocioException` usada para falha de autenticação |
 | B8 | IP bloqueado por força bruta | 422 | 429 | idem |
-| B9 | Refresh token usado como Bearer | 403 | 401 | o resource server não confere a claim `type` |
+| B9 | ~~Refresh token usado como Bearer~~ | ~~403~~ | 401 | **Corrigido em 27/09** — `SecurityConfig.decodificadorSomenteAccessToken` valida a claim `type` no resource server; `TokenServico` continua sem essa exigência, pois também valida refresh tokens |
 | B10 | `requestId` nas respostas 401 e 403 | `"n/a"` | `req_...` | `RequestIdFilter` roda depois do Spring Security (ver 7.1) |
 | B11 | Respostas 201 | sem `Location` | com `Location` | não implementado |
 | B12 | Erro inesperado | código `SERVICE_UNAVAILABLE` com HTTP 500 | `SERVICE_UNAVAILABLE` é 503 no contrato | código errado no handler genérico |
@@ -299,8 +299,8 @@ B7 e B8 estão documentados nos testes com o comportamento atual (422). Ao corri
 
 | # | Problema |
 |---|---|
-| S1 | Rate limit e proteção contra força bruta usam o primeiro IP do header `X-Forwarded-For`, que o cliente controla. Trocando o header a cada requisição, os dois são contornados. |
-| S2 | `pageSize` não tem limite máximo (`?pageSize=100000` é aceito). |
+| S1 | ~~Rate limit e proteção contra força bruta usam o primeiro IP do header `X-Forwarded-For`, que o cliente controla.~~ **Corrigido em 27/09** — `ClientIpResolver` usa o último IP da cadeia (o que o proxy do Render acrescenta), não o primeiro (controlado pelo cliente). |
+| S2 | ~~`pageSize` não tem limite máximo (`?pageSize=100000` é aceito).~~ **Corrigido em 27/09** — limite de 100 em `RespostaLista.paginada`. |
 | S3 | `/api/auth/register` é público em produção: qualquer pessoa cria conta `read_only`. Aceitável para a demo, mas é um risco a registrar. |
 
 **Contrato e dados:**
@@ -348,7 +348,7 @@ A rubrica avalia qualidade de REST, segurança, testes e documentação, não qu
 **Se der tempo**
 - [ ] Gaps reais a partir da comparação (regras 3 e 4 da seção 5.3)
 - [ ] Resolver a questão das rotas em português × inglês
-- [ ] GitHub Actions: build + testes, SAST, SCA (Dependabot) e secret scanning (vale também para Cybersecurity)
+- [x] GitHub Actions: build + testes, SAST, SCA (Dependabot) e secret scanning (vale também para Cybersecurity) — `.github/workflows/security.yml` + `.github/dependabot.yml`, também replicado em `FordSpecPulse_MobileAPP`
 
 **Depois da Sprint 3**
 - [ ] Valor percebido, recomendações, histórico, radar, relatórios, data quality, uploads
@@ -377,6 +377,7 @@ Pontos do pitch que afetam a API: mitigação de alucinação por "evidência ra
 | 2026-09-22 | Carlos | Deploy em container no Render (`Dockerfile`, `render.yaml`, perfil `prod`) | `8ffc6c6`, `4bee448` |
 | 2026-09-25 | Ian | Análise do contrato do frontend, do pitch e da rubrica da Sprint 3 contra o código. Criação deste arquivo | `contexto.md` (branch `ian-sprint3`) |
 | 2026-09-25 | Ian | Suíte de testes automatizados (63 testes, 70% de cobertura) com perfil `test` e JaCoCo. `RateLimitFilter` passa a ler os limites de `specpulse.rate-limit.*`. README com seção de testes e V8. Bugs encontrados registrados em 8.1 | `src/test/**`, `RateLimitFilter.java`, `pom.xml`, `README.md`, `contexto.md` |
+| 2026-09-27 | Claude (par com Carlos) | Entrega de Cybersecurity: pipeline DevSecOps real (GitHub Actions: build+testes, SAST/Semgrep, secret scanning/Gitleaks, SCA/Dependency-Check+npm audit+Dependabot, container scan/Trivy) nos dois repositórios; correção de S1 (IP forjado em `X-Forwarded-For` contornava rate limit e força bruta), S2 (`pageSize` sem limite máximo) e B9 (refresh token aceito como Bearer em rota protegida), todas com testes de regressão; documentação consolidada na raiz da challenge, em `../Entrega/cybersecurity/` (pipeline, hardening, observabilidade, compliance/STRIDE/OWASP/LGPD) e checklist em `../Entrega/checklist.md` | `.github/**`, `ClientIpResolver.java`, `RateLimitFilter.java`, `AutenticacaoControlador.java`, `RespostaLista.java`, `SecurityConfig.java`, `../Entrega/cybersecurity/**`, `../Entrega/checklist.md`, testes novos em `src/test/java/.../compartilhado/` e `AutenticacaoTest.java` |
 
 ---
 
