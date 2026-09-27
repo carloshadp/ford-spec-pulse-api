@@ -228,8 +228,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/usuarios").hasRole(Perfil.ADMINISTRADOR.name())
                         .requestMatchers(HttpMethod.PATCH, "/api/usuarios/**").hasRole(Perfil.ADMINISTRADOR.name())
 
-                        // Admin: audit log e operações administrativas
-                        .requestMatchers(HttpMethod.GET, "/api/admin/**").hasRole(Perfil.ADMINISTRADOR.name())
+                        // Admin: audit log e operações administrativas (inclui backup)
+                        .requestMatchers("/api/admin/**").hasRole(Perfil.ADMINISTRADOR.name())
 
                         // Data validator + admin: data quality e uploads
                         .requestMatchers("/api/qualidade-dados/**", "/api/uploads/**").hasAnyRole(
