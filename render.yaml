@@ -26,11 +26,12 @@ services:
       - key: SPECPULSE_JWT_SEGREDO
         sync: false
 
-      # Origens liberadas no CORS (lista separada por virgula).
-      # Sobrescreve specpulse.cors.origens por inteiro - se preencher, inclua
-      # tambem os localhost, senao o front local para de conseguir chamar.
-      - key: SPECPULSE_CORS_ORIGENS
-        sync: false
+      # CORS: NAO definir SPECPULSE_CORS_ORIGENS aqui de proposito.
+      # Sem a variavel, vale a lista do application.properties, que ja libera os
+      # localhost usados pelo front. Se um dia o front ganhar URL publica,
+      # adicione a variavel no dashboard com a lista COMPLETA (os localhost
+      # inclusive) - ela sobrescreve specpulse.cors.origens por inteiro, e um
+      # valor vazio derrubaria o CORS de todo mundo.
 
       # Heap limitado: o plano free tem 512 MB e a JVM seria morta por OOM.
       - key: JAVA_OPTS
