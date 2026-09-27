@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -16,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Rate limiting simples por IP usando janela deslizante de 1 minuto.
- * Limites: 60 req/min geral, 10 req/min nos endpoints /api/auth/*.
+ * Limites configuráveis via specpulse.rate-limit.geral e specpulse.rate-limit.auth.
  */
 @Component
 @Order(1)
@@ -24,8 +25,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
     private static final long JANELA_MS = 60_000L;
-    private static final int LIMITE_GERAL = 60;
-    private static final int LIMITE_AUTH = 10;
+
+    @Value("${specpulse.rate-limit.geral:60}")
+    private int limiteGeral;
+
+    @Value("${specpulse.rate-limit.auth:10}")
+    private int limiteAuth;
 
     private final ConcurrentHashMap<String, WindowEntry> janelas = new ConcurrentHashMap<>();
 
@@ -37,7 +42,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String ip = obterIp(req);
         boolean ehAuth = req.getRequestURI().startsWith("/api/auth/");
-        int limite = ehAuth ? LIMITE_AUTH : LIMITE_GERAL;
+        int limite = ehAuth ? limiteAuth : limiteGeral;
 
         String chave = ip + (ehAuth ? ":auth" : ":geral");
         long agora = System.currentTimeMillis();

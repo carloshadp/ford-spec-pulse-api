@@ -201,6 +201,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/qualidade-dados/**", "/api/uploads/**").hasAnyRole(
                                 Perfil.VALIDADOR_DADOS.name(), Perfil.ADMINISTRADOR.name())
 
+                        // Logout: qualquer usuario autenticado pode encerrar a propria sessao
+                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
+
                         // Criação de comparações: analista, gerente, admin
                         .requestMatchers(HttpMethod.POST, "/api/comparacoes").hasAnyRole(
                                 Perfil.ANALISTA.name(), Perfil.GERENTE.name(), Perfil.ADMINISTRADOR.name())
