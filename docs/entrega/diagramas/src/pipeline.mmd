@@ -4,7 +4,7 @@ flowchart TD
 
     subgraph CI["GitHub Actions — .github/workflows/security.yml"]
         direction LR
-        build["<b>build-test</b><br/>mvn verify / npm test<br/>94 testes automatizados"]
+        build["<b>build-test</b><br/>mvn verify / npm test<br/>95 testes automatizados"]
         sast["<b>sast</b><br/>Semgrep<br/>java + owasp-top-ten + secrets"]
         secrets["<b>secret-scanning</b><br/>Gitleaks<br/>historico git completo"]
         sca["<b>sca</b><br/>Dependency-Check + npm audit<br/>Dependabot semanal (cooldown 7d)"]
