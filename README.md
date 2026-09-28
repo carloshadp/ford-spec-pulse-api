@@ -22,19 +22,28 @@ API REST para **inteligência competitiva automotiva**: recebe uma entrada simpl
 
 **Pré-requisitos:** JDK 21 e Maven 3.9+.
 
-```powershell
+```bash
 mvn spring-boot:run
 ```
 
-A aplicação sobe em `http://localhost:8080`. As migrations Flyway aplicam schema e dados de seed automaticamente.
+A aplicação sobe em `http://localhost:8443`. As migrations Flyway aplicam schema e dados de seed automaticamente.
 
 | Recurso | URL |
 |---|---|
-| Swagger UI | http://localhost:8080/swagger-ui.html |
-| OpenAPI JSON | http://localhost:8080/v3/api-docs |
-| H2 Console | http://localhost:8080/h2-console |
+| Swagger UI | http://localhost:8443/swagger-ui.html |
+| OpenAPI JSON | http://localhost:8443/v3/api-docs |
+| H2 Console | http://localhost:8443/h2-console |
+| Health Check | http://localhost:8443/actuator/health |
 
-Console H2 → JDBC URL: `jdbc:h2:file:./data/specpulse;DB_CLOSE_DELAY=-1;MODE=LEGACY` · usuário `sa` sem senha.
+Console H2 → JDBC URL: `jdbc:h2:file:./data/specpulse;DB_CLOSE_DELAY=-1;MODE=LEGACY;CIPHER=AES` · usuário `sa` · senha: `specpulse-file-key specpulse-user-pass`
+
+### Testes automatizados
+
+```bash
+mvn test
+```
+
+Os testes usam H2 in-memory (sem CIPHER) e sobem um servidor na porta aleatória. Não é necessária nenhuma configuração adicional.
 
 ---
 
@@ -253,6 +262,72 @@ Os endpoints aceitam **UUID ou slug** — tentam parse UUID primeiro, depois sca
 ---
 
 ## Arquitetura
+
+### Diagrama de componentes
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           Clientes (Sprint 3 — AOS)                         │
+│                                                                             │
+│   ┌──────────────────┐          ┌──────────────────────────────┐           │
+│   │  React Native /  │          │   Outros clientes REST       │           │
+│   │  Expo Mobile App │          │   (Swagger UI / curl / etc.) │           │
+│   └────────┬─────────┘          └──────────────┬───────────────┘           │
+└────────────┼─────────────────────────────────────┼───────────────────────── ┘
+             │  HTTPS/HTTP                         │  HTTPS/HTTP
+             ▼                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Ford SpecPulse API  (Spring Boot 3)                  │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │  Camada de Filtros (javax.servlet.Filter)                            │  │
+│  │  RequestIdFilter → RateLimitFilter → XssFilter → HmacSignatureFilter │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌─────────────────────┐  ┌──────────────────────────────────────────────┐ │
+│  │  Spring Security    │  │  Controladores REST  (Nível 2 Richardson)    │ │
+│  │  ─────────────────  │  │  ──────────────────────────────────────────  │ │
+│  │  JWT HS256 decode   │  │  /api/auth/*      (public — login/register)  │ │
+│  │  RBAC 5 perfis      │  │  /api/marcas      (GET — read_only+)         │ │
+│  │  OAuth2 Resource    │  │  /api/veiculos    (GET — read_only+)         │ │
+│  │  Server             │  │  /api/versoes     (GET — read_only+)         │ │
+│  │  BCrypt(10) encoder │  │  /api/fichas-tecnicas (POST — read_only+)    │ │
+│  │  CORS / HSTS / CSP  │  │  /api/comparacoes (POST — analista+)         │ │
+│  └─────────────────────┘  │  /api/usuarios   (admin only)               │ │
+│                            │  /api/admin/*    (admin only)               │ │
+│                            └──────────────────────────────────────────────┘ │
+│                                        │                                    │
+│  ┌─────────────────────────────────────▼──────────────────────────────────┐ │
+│  │  Camada de Serviços (domínio)                                          │ │
+│  │  AutenticacaoServico  TokenServico  FichaTecnicaServico                │ │
+│  │  ComparacaoServico    MarcaServico  AuditoriaServico (async)           │ │
+│  │  BruteForceProtectionService  DataRetentionService (scheduled)        │ │
+│  └───────────────────────────────────┬────────────────────────────────────┘ │
+│                                      │                                      │
+│  ┌───────────────────────────────────▼────────────────────────────────────┐ │
+│  │  Persistência — Spring Data JPA + Flyway (V1–V8)                      │ │
+│  │  H2 (dev, arquivo CIPHER=AES)  |  configurável para outros SGBDs      │ │
+│  │                                                                        │ │
+│  │  marcas → veiculos → versoes → especificacoes ← atributos_definicao   │ │
+│  │  usuarios → refresh_tokens                                             │ │
+│  │  auditoria  comparacoes → comparacao_versoes → comparacao_celulas     │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Fluxo de autenticação:**
+```
+Cliente → POST /api/auth/login {email, senha}
+        ← 200 { accessToken (15 min), refreshToken (7 dias) }
+
+Cliente → GET /api/marcas   Authorization: Bearer <accessToken>
+        → Spring Security valida JWT (HS256) + extrai role
+        → SecurityFilterChain verifica RBAC
+        ← 200 { data: [...] }  |  401 (token ausente/inválido)  |  403 (role insuficiente)
+
+Cliente → POST /api/auth/refresh {refreshToken}
+        ← 200 { novo accessToken, novo refreshToken }   (token rotation)
+```
 
 ### Estrutura de pacotes
 
