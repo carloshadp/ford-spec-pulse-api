@@ -12,6 +12,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -70,5 +71,14 @@ class BackupServiceTest extends TesteIntegracaoBase {
         Integer depois = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM usuarios WHERE email = ?", Integer.class, email);
         assertThat(depois).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("restauracao recusa nome de arquivo fora do padrao (path traversal / injecao)")
+    void restauracaoRecusaNomeInvalido() {
+        assertThatThrownBy(() -> backupService.restaurar("../../etc/passwd"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> backupService.restaurar("x.zip'; DROP ALL OBJECTS; --"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

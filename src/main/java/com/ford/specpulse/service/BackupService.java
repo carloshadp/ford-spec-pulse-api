@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.regex.Pattern;
 
 /**
  * Rotina de backup e recuperacao do banco.
@@ -30,6 +31,7 @@ import java.time.format.DateTimeFormatter;
 public class BackupService {
 
     private static final Logger log = LoggerFactory.getLogger(BackupService.class);
+    private static final Pattern NOME_VALIDO = Pattern.compile("specpulse-\\d{8}-\\d{6}\\.zip");
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
     private final JdbcTemplate jdbc;
@@ -56,12 +58,19 @@ public class BackupService {
      * Destrutivo: apaga o conteudo atual das tabelas antes de importar.
      */
     public void restaurar(String nomeArquivo) {
-        Path origem = Path.of(diretorioBackup, nomeArquivo);
+        if (nomeArquivo == null || !NOME_VALIDO.matcher(nomeArquivo).matches()) {
+            throw new IllegalArgumentException("Nome de arquivo de backup invalido");
+        }
+        Path base = Path.of(diretorioBackup).toAbsolutePath().normalize();
+        Path origem = base.resolve(nomeArquivo).normalize();
+        if (!origem.startsWith(base)) {
+            throw new IllegalArgumentException("Arquivo fora do diretorio de backup");
+        }
         log.warn("[BACKUP] Iniciando restauracao a partir de {}", nomeArquivo);
         // RUNSCRIPT recria os objetos do zero; o schema atual precisa estar
         // vazio, senao os CREATE TABLE do script falham (objeto ja existe).
         jdbc.execute("DROP ALL OBJECTS");
-        jdbc.execute("RUNSCRIPT FROM '" + origem.toAbsolutePath() + "' COMPRESSION ZIP");
+        jdbc.execute("RUNSCRIPT FROM '" + origem + "' COMPRESSION ZIP");
         log.warn("[BACKUP] Restauracao concluida a partir de {}", nomeArquivo);
     }
 
