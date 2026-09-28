@@ -1,0 +1,28 @@
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#1f2a44','primaryTextColor':'#f5f5f5','primaryBorderColor':'#5b7fdb','lineColor':'#5b7fdb','secondaryColor':'#2c3e60','tertiaryColor':'#0e1420','fontSize':'16px','actorBkg':'#1f2a44','actorTextColor':'#f5f5f5','actorBorder':'#5b7fdb','signalColor':'#f5f5f5','signalTextColor':'#f5f5f5','labelBoxBkgColor':'#2c3e60','labelTextColor':'#f5f5f5','noteBkgColor':'#3a1f1f','noteTextColor':'#f5f5f5'}}}%%
+sequenceDiagram
+    participant App as App (React/Expo)
+    participant API as API Java (Spring Security)
+    participant DB as H2 (usuarios/refresh_tokens)
+
+    App->>API: POST /api/auth/login {email, senha}
+    API->>DB: valida hash BCrypt da senha
+    alt credenciais invalidas
+        API-->>App: 422 BUSINESS_RULE_VIOLATION
+        Note right of API: BruteForceProtectionService conta a falha por IP.\n5 falhas em 15 min = IP bloqueado por 30 min
+    else credenciais validas
+        API->>API: gera access token JWT HS256 (15 min, claim type=access)
+        API->>API: gera refresh token JWT HS256 (7 dias, claim type=refresh)
+        API->>DB: grava refresh token (jti, expiracao)
+        API-->>App: 200 {accessToken, refreshToken, expiresIn}
+    end
+
+    App->>API: GET /api/veiculos (Authorization: Bearer accessToken)
+    API->>API: decoder do resource server valida:\nassinatura + expiracao + claim type=access
+    Note right of API: Corrigido nesta entrega: um refresh token\nusado aqui era aceito antes (bug B9).\nAgora e recusado com 401
+    API-->>App: 200 dados | 401 token invalido/expirado/tipo errado | 403 sem permissao
+
+    App->>API: POST /api/auth/refresh {refreshToken}
+    API->>DB: confere jti ativo e nao revogado
+    API->>DB: revoga o refresh token antigo (rotacao)
+    API->>DB: grava o novo refresh token
+    API-->>App: 200 novo par de tokens

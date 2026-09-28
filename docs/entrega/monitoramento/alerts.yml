@@ -1,0 +1,23 @@
+groups:
+  - name: specpulse-seguranca
+    rules:
+      - alert: PicoDeRespostasDeSeguranca
+        expr: sum(rate(http_server_requests_seconds_count{job="ford-spec-pulse-api", status=~"401|403|429"}[1m])) > 0.05
+        for: 15s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pico de respostas 401/403/429 na API"
+          description: "Taxa de respostas de seguranca acima do normal nos ultimos 15s — possivel forca bruta, scan ou token invalido em massa."
+
+      - alert: TaxaDeErro5xxAlta
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="ford-spec-pulse-api", status=~"5.."}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count{job="ford-spec-pulse-api"}[5m])) > 0.01
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Taxa de erro 5xx acima de 1% em 5 minutos"
+          description: "Erro de servidor persistente — investigar logs estruturados por requestId."

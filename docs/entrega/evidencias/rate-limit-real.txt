@@ -1,0 +1,16 @@
+=== Rate limit real: 12 tentativas de login em rajada (limite: 10/min em /api/auth/*) ===
+tentativa 1: HTTP 200
+tentativa 2: HTTP 200
+tentativa 3: HTTP 200
+tentativa 4: HTTP 200
+tentativa 5: HTTP 200
+tentativa 6: HTTP 200
+tentativa 7: HTTP 429
+tentativa 8: HTTP 429
+tentativa 9: HTTP 429
+tentativa 10: HTTP 429
+tentativa 11: HTTP 429
+tentativa 12: HTTP 429
+
+=== Corpo da resposta 429 ===
+{"code":"RATE_LIMIT_EXCEEDED","message":"Muitas requisições. Tente novamente em breve.","status":429}

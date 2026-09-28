@@ -1,0 +1,38 @@
+name: specpulse-observabilidade
+
+# Stack de demonstracao LOCAL para a entrega de Cybersecurity (Observabilidade
+# e Monitoramento). Nao faz parte do deploy real da API (Render); serve so
+# para gerar prints reais de dashboard a partir de metricas reais da API
+# rodando localmente com o profile "observabilidade".
+#
+# Uso:
+#   1. Rodar a API localmente: PORT=8081 SPRING_PROFILES_ACTIVE=observabilidade mvn spring-boot:run
+#   2. docker compose up -d
+#   3. Abrir http://localhost:3000 (admin/admin, sem prompt de troca de senha)
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: specpulse-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: specpulse-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana-provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus

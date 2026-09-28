@@ -1,0 +1,28 @@
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#1f2a44','primaryTextColor':'#f5f5f5','primaryBorderColor':'#5b7fdb','lineColor':'#5b7fdb','secondaryColor':'#2c3e60','tertiaryColor':'#0e1420','fontSize':'16px'}, 'flowchart': {'wrappingWidth': 260, 'nodeSpacing': 40, 'rankSpacing': 60}}}%%
+flowchart TD
+    commit["<b>Commit / Pull Request</b><br/>branch qualquer -&gt; main"]
+
+    subgraph CI["GitHub Actions — .github/workflows/security.yml"]
+        direction LR
+        build["<b>build-test</b><br/>mvn verify / npm test<br/>94 testes automatizados"]
+        sast["<b>sast</b><br/>Semgrep<br/>java + owasp-top-ten + secrets"]
+        secrets["<b>secret-scanning</b><br/>Gitleaks<br/>historico git completo"]
+        sca["<b>sca</b><br/>Dependency-Check + npm audit<br/>Dependabot semanal (cooldown 7d)"]
+        container["<b>container-scan</b><br/>Trivy na imagem Docker<br/>needs: build-test"]
+    end
+
+    deploy["<b>Deploy automatico</b><br/>Render (render.yaml)<br/>push em main"]
+    prod["<b>Producao endurecida</b><br/>sem stack trace / sem H2 console<br/>so /actuator/health exposto"]
+    proposto["<i>Proposto, nao implementado:</i><br/>branch protection exigindo os<br/>jobs verdes antes do merge em main"]
+
+    commit --> build & sast & secrets & sca
+    build --> container
+    commit -.->|"hoje, independente do CI"| deploy --> prod
+    proposto -.-> deploy
+
+    classDef sec fill:#3a1f1f,stroke:#d97070,color:#f5f5f5
+    classDef normal fill:#1f2a44,stroke:#5b7fdb,color:#f5f5f5
+    classDef proposedStyle fill:#2c3e60,stroke:#5b7fdb,color:#f5f5f5,stroke-dasharray: 5 5
+    class sast,secrets,sca,container sec
+    class commit,build,deploy,prod normal
+    class proposto proposedStyle

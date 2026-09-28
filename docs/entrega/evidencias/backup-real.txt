@@ -1,0 +1,45 @@
+=== Backup real via API — POST /api/admin/backup (admin) ===
+$ curl -i -X POST http://localhost:8081/api/admin/backup -H "Authorization: Bearer <token-admin>"
+
+HTTP/1.1 201 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+X-Request-Id: req_4a2361b009584bfba7a15bf8c805bd00
+X-Content-Type-Options: nosniff
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: SAMEORIGIN
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'self'
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Sun, 27 Sep 2026 23:27:42 GMT
+
+{"arquivo":"specpulse-20260927-202742.zip","geradoEm":"2026-09-27T20:27:42.671634-03:00"}
+
+=== Confirmacao: arquivo criado de verdade em disco ===
+total 28
+drwxr-xr-x 1 carlo 197609     0 Sep 27 20:27 .
+drwxr-xr-x 1 carlo 197609     0 Sep 27 20:27 ..
+-rw-r--r-- 1 carlo 197609 10306 Sep 27 20:27 specpulse-20260927-202733.zip
+-rw-r--r-- 1 carlo 197609 10655 Sep 27 20:27 specpulse-20260927-202742.zip
+
+=== 403 real: perfil SOMENTE_LEITURA nao aciona backup ===
+$ curl -i -X POST http://localhost:8081/api/admin/backup -H "Authorization: Bearer <token-leitor>"
+
+HTTP/1.1 403 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: SAMEORIGIN
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; frame-ancestors 'self'
+Content-Type: application/json;charset=UTF-8
+Content-Length: 205
+Date: Sun, 27 Sep 2026 23:27:43 GMT
+
+{"timestamp":"2026-09-27T20:27:43.095001700-03:00","status":403,"code":"FORBIDDEN","message":"Seu perfil nao possui permissao para esta operacao.","path":"/api/admin/backup","requestId":"n/a","details":[]}

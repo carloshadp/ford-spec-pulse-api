@@ -1,0 +1,96 @@
+=== semgrep SAST: ford-spec-pulse-api ===
+               
+               
+┌─────────────┐
+│ Scan Status │
+└─────────────┘
+  Scanning 136 files tracked by git with 595 Code rules:
+                                                                                                                        
+  Language      Rules   Files          Origin      Rules                                                                
+ ─────────────────────────────        ───────────────────                                                               
+  <multilang>      41     136          Community     595                                                                
+  java             60     115                                                                                           
+  yaml             25       3                                                                                           
+  dockerfile        4       1                                                                                           
+                                                                                                                        
+                    
+                    
+┌──────────────────┐
+│ 15 Code Findings │
+└──────────────────┘
+                               
+    /src/.github/dependabot.yml
+    ❯❱ package_managers.dependabot.dependabot-missing-cooldown.dependabot-missing-cooldown
+          ❰❰ Blocking ❱❱
+          This Dependabot configuration does not set a cooldown period. Newly published packages can be     
+          malicious or unstable. Add a `cooldown` block with `default-days: 7` to each `package-ecosystem`  
+          entry under `updates` to wait 7 days before proposing updates to newly published package versions.
+          Reference: https://docs.github.com/en/code-security/dependabot/dependabot-version-                
+          updates/configuration-options-for-the-dependabot.yml-file#cooldown                                
+          Details: https://sg.run/5WvGK                                                                     
+                                                                                                            
+            3┆ - package-ecosystem: maven
+            4┆   directory: /
+            5┆   schedule:
+            6┆     interval: weekly
+            7┆   open-pull-requests-limit: 10
+            ⋮┆----------------------------------------
+            8┆ - package-ecosystem: docker
+            9┆   directory: /
+           10┆   schedule:
+           11┆     interval: weekly
+            ⋮┆----------------------------------------
+           12┆ - package-ecosystem: github-actions
+           13┆   directory: /
+           14┆   schedule:
+           15┆     interval: weekly
+                                       
+    /src/.github/workflows/security.yml
+    ❯❱ yaml.github-actions.security.github-actions-mutable-action-tag.github-actions-mutable-action-tag
+          ❰❰ Blocking ❱❱
+          GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently   
+          repointed by the action owner, enabling supply-chain attacks — as seen in the trivy-action and kics-
+          github-action compromises. Pin the reference to a full 40-character commit SHA instead, e.g. `uses: 
+          actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608`.                                         
+          Details: https://sg.run/2LgAL                                                                       
+                                                                                                              
+           18┆ - uses: actions/checkout@v4
+            ⋮┆----------------------------------------
+           19┆ - uses: actions/setup-java@v4
+            ⋮┆----------------------------------------
+           27┆ uses: actions/upload-artifact@v4
+            ⋮┆----------------------------------------
+           37┆ - uses: actions/checkout@v4
+            ⋮┆----------------------------------------
+           39┆ uses: semgrep/semgrep-action@v1
+            ⋮┆----------------------------------------
+           47┆ - uses: actions/checkout@v4
+            ⋮┆----------------------------------------
+           51┆ uses: gitleaks/gitleaks-action@v2
+            ⋮┆----------------------------------------
+           59┆ - uses: actions/checkout@v4
+            ⋮┆----------------------------------------
+           60┆ - uses: actions/setup-java@v4
+            ⋮┆----------------------------------------
+           71┆ uses: actions/upload-artifact@v4
+            ⋮┆----------------------------------------
+           82┆ - uses: actions/checkout@v4
+            ⋮┆----------------------------------------
+           86┆ uses: aquasecurity/trivy-action@0.24.0
+
+                
+                
+┌──────────────┐
+│ Scan Summary │
+└──────────────┘
+✅ Scan completed successfully.
+ • Findings: 15 (15 blocking)
+ • Rules run: 130
+ • Targets scanned: 136
+ • Parsed lines: ~100.0%
+ • Scan skipped: 
+   ◦ Files matching .semgrepignore patterns: 12
+ • Scan was limited to files tracked by git
+ • For a detailed list of skipped files and lines, run semgrep with the --verbose flag
+Ran 130 rules on 136 files: 15 findings.
+exit code: 1

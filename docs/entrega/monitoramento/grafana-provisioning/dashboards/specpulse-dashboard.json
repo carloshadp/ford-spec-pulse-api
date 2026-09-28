@@ -1,0 +1,108 @@
+{
+  "title": "Ford SpecPulse API - Seguranca e Observabilidade",
+  "uid": "specpulse-security",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Total de requisicoes HTTP",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(http_server_requests_seconds_count{job=\"ford-spec-pulse-api\"})",
+          "legendFormat": "total"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Respostas de seguranca (401 + 403 + 429)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(http_server_requests_seconds_count{job=\"ford-spec-pulse-api\", status=~\"401|403|429\"})",
+          "legendFormat": "seguranca"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Memoria heap da JVM (bytes)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_used_bytes{job=\"ford-spec-pulse-api\", area=\"heap\"})",
+          "legendFormat": "heap"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Status da aplicacao (actuator/health)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "UP" }, "0": { "text": "DOWN" } } }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "up{job=\"ford-spec-pulse-api\"}",
+          "legendFormat": "up"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Requisicoes por status HTTP (taxa por segundo)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (status) (rate(http_server_requests_seconds_count{job=\"ford-spec-pulse-api\"}[1m]))",
+          "legendFormat": "status {{status}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Requisicoes por rota e status (total)",
+      "type": "table",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (uri, status, method) (http_server_requests_seconds_count{job=\"ford-spec-pulse-api\"})",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    }
+  ]
+}
