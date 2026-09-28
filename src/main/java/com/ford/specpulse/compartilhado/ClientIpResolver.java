@@ -3,7 +3,13 @@ package com.ford.specpulse.compartilhado;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Extrai o IP real do cliente, considerando proxies reversos via X-Forwarded-For.
+ * Resolve o IP real do cliente atras do proxy do Render.
+ *
+ * O Render (proxy de borda) sempre acrescenta o IP real do cliente como o
+ * ULTIMO endereco da cadeia X-Forwarded-For, apos qualquer valor que o
+ * proprio cliente tenha enviado. Confiar no PRIMEIRO endereco (comportamento
+ * anterior) permitia que qualquer requisicao forjasse o header e contornasse
+ * o rate limit e o bloqueio por forca bruta, que sao aplicados por IP.
  */
 public final class ClientIpResolver {
 
@@ -13,7 +19,8 @@ public final class ClientIpResolver {
     public static String resolver(HttpServletRequest req) {
         String forwarded = req.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
+            String[] enderecos = forwarded.split(",");
+            return enderecos[enderecos.length - 1].trim();
         }
         return req.getRemoteAddr();
     }
