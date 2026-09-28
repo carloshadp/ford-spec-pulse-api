@@ -26,13 +26,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(RateLimitFilter.class);
     private static final long JANELA_MS = 60_000L;
 
-    @Value("${specpulse.rate-limit.geral:60}")
-    private int limiteGeral;
-
-    @Value("${specpulse.rate-limit.auth:10}")
-    private int limiteAuth;
-
+    private final int limiteGeral;
+    private final int limiteAuth;
     private final ConcurrentHashMap<String, WindowEntry> janelas = new ConcurrentHashMap<>();
+
+    public RateLimitFilter(@Value("${specpulse.rate-limit.geral:60}") int limiteGeral,
+                           @Value("${specpulse.rate-limit.auth:10}") int limiteAuth) {
+        this.limiteGeral = limiteGeral;
+        this.limiteAuth = limiteAuth;
+    }
 
     private record WindowEntry(long inicioJanela, AtomicInteger contagem) {
     }
