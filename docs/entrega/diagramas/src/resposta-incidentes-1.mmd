@@ -1,0 +1,5 @@
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#1f2a44','primaryTextColor':'#f5f5f5','primaryBorderColor':'#5b7fdb','lineColor':'#5b7fdb','secondaryColor':'#2c3e60','tertiaryColor':'#0e1420','fontSize':'16px'}, 'flowchart': {'wrappingWidth': 250, 'nodeSpacing': 40, 'rankSpacing': 50}}}%%
+flowchart LR
+    A["<b>1. Deteccao</b><br/>log WARN, alerta do Prometheus<br/>(429/403 ou 5xx acima do limiar)<br/><i>Responsavel: on-call</i>"] --> B["<b>2. Analise</b><br/>filtrar por requestId/userId/IP;<br/>conferir audit_log; classificar<br/>a severidade<br/><i>Responsavel: tecnico do modulo</i>"] --> C["<b>3. Contencao</b><br/>bloqueio automatico de IP;<br/>revogar sessoes do usuario afetado<br/><i>Responsavel: tecnico + admin</i>"]
+    classDef step fill:#1f2a44,stroke:#5b7fdb,color:#f5f5f5
+    class A,B,C step

@@ -1,0 +1,8 @@
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#1f2a44','primaryTextColor':'#f5f5f5','primaryBorderColor':'#5b7fdb','lineColor':'#5b7fdb','secondaryColor':'#2c3e60','tertiaryColor':'#0e1420','fontSize':'16px'}, 'flowchart': {'wrappingWidth': 250, 'nodeSpacing': 40, 'rankSpacing': 50}}}%%
+flowchart LR
+    D["<b>4. Erradicacao</b><br/>corrigir a causa raiz; rotacionar<br/>segredo se houver vazamento<br/><i>Responsavel: tecnico do modulo</i>"] --> E["<b>5. Recuperacao</b><br/>redeploy no Render; conferir<br/>health check e pipeline verde<br/><i>Responsavel: tecnico do modulo</i>"] --> F["<b>6. Pos-incidente</b><br/>registrar, comunicar a equipe,<br/>item na rotina de revisao<br/><i>Responsavel: tech lead</i>"]
+    F -. "dado pessoal exposto?" .-> ANPD["<b>LGPD</b><br/>avaliar notificacao a ANPD<br/>e aos titulares (art. 48)"]
+    classDef step fill:#1f2a44,stroke:#5b7fdb,color:#f5f5f5
+    classDef note fill:#2c3e60,stroke:#5b7fdb,color:#f5f5f5
+    class D,E,F step
+    class ANPD note
