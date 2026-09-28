@@ -17,7 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Rate limiting simples por IP usando janela deslizante de 1 minuto.
- * Limites configuráveis via specpulse.rate-limit.geral e specpulse.rate-limit.auth.
+ * Limites configuraveis em specpulse.rate-limit.geral (padrao 60 req/min)
+ * e specpulse.rate-limit.auth (padrao 10 req/min nos endpoints /api/auth/*).
  */
 @Component
 @Order(1)
@@ -71,10 +72,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private String obterIp(HttpServletRequest req) {
-        String forwarded = req.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return req.getRemoteAddr();
+        return ClientIpResolver.resolver(req);
     }
 }
